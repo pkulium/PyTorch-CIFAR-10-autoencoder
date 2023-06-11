@@ -62,24 +62,33 @@ class Autoencoder(nn.Module):
         super(Autoencoder, self).__init__()
         # Input size: [batch, 3, 32, 32]
         # Output size: [batch, 3, 32, 32]
+        norm_layer = nn.BatchNorm2d
         self.encoder = nn.Sequential(
-            nn.Conv2d(3, 12, 4, stride=2, padding=1),            # [batch, 12, 16, 16]
+            nn.Conv2d(3, 24, 4, stride=4, padding=0),
+            norm_layer(24),
             nn.ReLU(),
-            nn.Conv2d(12, 24, 4, stride=2, padding=1),           # [batch, 24, 8, 8]
+            nn.Conv2d(24, 48, 3, stride=3, padding=2),
+            norm_layer(48),
             nn.ReLU(),
-			nn.Conv2d(24, 48, 4, stride=2, padding=1),           # [batch, 48, 4, 4]
+            nn.Conv2d(48, 96, 4, stride=2, padding=1),
+            norm_layer(96),
             nn.ReLU(),
-# 			nn.Conv2d(48, 96, 4, stride=2, padding=1),           # [batch, 96, 2, 2]
-#             nn.ReLU(),
+            nn.Conv2d(96, 192, 2, stride=2, padding=0),
+            norm_layer(192),
+            nn.ReLU(),
         )
+
         self.decoder = nn.Sequential(
-#             nn.ConvTranspose2d(96, 48, 4, stride=2, padding=1),  # [batch, 48, 4, 4]
-#             nn.ReLU(),
-			nn.ConvTranspose2d(48, 24, 4, stride=2, padding=1),  # [batch, 24, 8, 8]
+            nn.ConvTranspose2d(192, 96, 2, stride=2, padding=0),
+            norm_layer(96),
             nn.ReLU(),
-			nn.ConvTranspose2d(24, 12, 4, stride=2, padding=1),  # [batch, 12, 16, 16]
+            nn.ConvTranspose2d(96, 48, 4, stride=2, padding=1),
+            norm_layer(48),
             nn.ReLU(),
-            nn.ConvTranspose2d(12, 3, 4, stride=2, padding=1),   # [batch, 3, 32, 32]
+            nn.ConvTranspose2d(48, 24, 3, stride=3 , padding=2),
+            norm_layer(24),
+            nn.ReLU(),
+            nn.ConvTranspose2d(24, 3, 4, stride=4, padding=0),
             nn.Sigmoid(),
         )
 
@@ -98,8 +107,15 @@ def main():
     autoencoder = create_model()
 
     # Load data
-    transform = transforms.Compose(
-        [transforms.ToTensor(), ])
+    MEAN_CIFAR10 = (0.4914, 0.4822, 0.4465)
+    STD_CIFAR10 = (0.2023, 0.1994, 0.2010)
+    transform = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(MEAN_CIFAR10, STD_CIFAR10)
+    ])
+
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                             download=True, transform=transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=16,
